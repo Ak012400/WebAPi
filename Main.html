@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUD Application</title>
+    <style>
+        /* Rest of your styles remain same */
+    
+        /* Add this CSS for table scroll */
+        .table-container {
+            max-height: 400px; /* Set a fixed height for the table container */
+            overflow-y: auto; /* Enable vertical scrolling */
+            border: 1px solid #ccc; /* Optional: Add a border for better visibility */
+            margin-top: 20px; /* Space between form and table */
+        }
+    
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+    
+        table th, table td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+    
+        table th {
+            background-color: #f2f2f2;
+            position: sticky; /* Make header row sticky */
+            top: 0;
+            z-index: 1;
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="container">
+        <h1>CRUD Application</h1>
+
+        <!-- Form for Adding/Updating Data -->
+        <div class="form-container">
+            <input type="text" id="title" placeholder="Enter Title" required />
+            <input type="text" id="description" placeholder="Enter Description" required />
+            <button id="submitButton">Add Item</button>
+            <button id="updateButton" style="display:none;">Update Item</button>
+        </div>
+
+        <!-- Table for Displaying Data -->
+        <!-- Table for Displaying Data -->
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="dataTable">
+            <!-- Rows will be dynamically added here -->
+        </tbody>
+    </table>
+</div>
+
+    </div>
+
+    <script>
+        const apiUrl = 'https://localhost:7028/api/books'; // Replace with your API endpoint
+
+        // Load Data on Page Load
+        window.onload = fetchAndDisplayData;
+
+        function fetchAndDisplayData() {
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('dataTable');
+                    tableBody.innerHTML = ''; // Clear existing rows
+
+                    data.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${item.id}</td>
+                            <td>${item.title}</td>
+                            <td>${item.description}</td>
+                            <td class="actions">
+                                <button onclick="editItem(${item.id}, '${item.title}', '${item.description}')">Edit</button>
+                                <button onclick="deleteItem(${item.id})">Delete</button>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        // Add Item
+        document.getElementById('submitButton').addEventListener('click', () => {
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+
+            if (!title || !description) {
+                alert('Please fill out all fields.');
+                return;
+            }
+
+            const newItem = { title, description };
+
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(newItem)
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Failed to add item.');
+                    return response.json();
+                })
+                .then(() => {
+                    fetchAndDisplayData();
+                    document.getElementById('title').value = '';
+                    document.getElementById('description').value = '';
+                })
+                .catch(error => alert(error.message));
+        });
+
+        // Delete Item
+        function deleteItem(id) {
+            fetch(`${apiUrl}/${id}`, {
+                method: 'DELETE'
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Failed to delete item.');
+                    fetchAndDisplayData();
+                })
+                .catch(error => alert(error.message));
+        }
+
+        // Edit Item
+        function editItem(id, title, description) {
+            document.getElementById('title').value = title;
+            document.getElementById('description').value = description;
+            document.getElementById('submitButton').style.display = 'none';
+            document.getElementById('updateButton').style.display = 'inline';
+
+            document.getElementById('updateButton').onclick = () => {
+                const updatedTitle = document.getElementById('title').value;
+                const updatedDescription = document.getElementById('description').value;
+
+                const updatedItem = { title: updatedTitle, description: updatedDescription };
+
+                fetch(`${apiUrl}/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatedItem)
+                })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Failed to update item.');
+                        return response.json();
+                    })
+                    .then(() => {
+                        fetchAndDisplayData();
+                        document.getElementById('title').value = '';
+                        document.getElementById('description').value = '';
+                        document.getElementById('submitButton').style.display = 'inline';
+                        document.getElementById('updateButton').style.display = 'none';
+                    })
+                    .catch(error => alert(error.message));
+            };
+        }
+    </script>
+</body>
+</html>
